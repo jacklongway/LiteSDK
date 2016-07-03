@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <com.longway.framework.ui.widget.HeaderView
+        android:id="@+id/framework_hv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"></com.longway.framework.ui.widget.HeaderView>
+
+    <FrameLayout
+        android:id="@+id/framework_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"></FrameLayout>
+
+</LinearLayout>

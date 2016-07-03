@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <drawable name="orange">#F4980F</drawable>
+    <drawable name="drawable_f6f6f6">#F6F6F6</drawable>
+    <color name="color_575757">#575757</color>
+    <color name="color_e1e1e1">#E1E1E1</color>
+
+    <color name="status_bar_bg">#2D5BE4</color>
+
+</resources>

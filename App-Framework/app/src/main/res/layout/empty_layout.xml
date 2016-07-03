@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.longway.framework.ui.widget.EmptyView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/empty_view_container_ly"
+    android:layout_width="match_parent"
+    android:background="@android:color/white"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/framework_empty_iv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:scaleType="centerCrop" />
+
+    <Button
+        android:id="@+id/framework_empty_retry_load"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/margin"
+        android:gravity="center"
+        android:text="@string/retry" />
+
+</com.longway.framework.ui.widget.EmptyView>

@@ -1,0 +1,14 @@
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">Application</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="retry">点击重新加载</string>
+
+    <!-- HomeFragment -->
+    <string name="more">更多</string>
+
+    <string name="log_service">log_service</string>
+
+
+</resources>
