@@ -39,7 +39,7 @@ captures/
 # Keystore files
 *.jks
 
-app/
+/app
 build.gradle
 gradle.properties
 /settings.gradle
