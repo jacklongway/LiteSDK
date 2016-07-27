@@ -1,1 +1,1 @@
-include ':app',':App-Framework:app',':AndroidAsync'
+include ':App-Framework:app',':AndroidAsync'
