@@ -1,16 +1,20 @@
 package com.longway.framework.executor;
 
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.longway.elabels.BuildConfig;
 import com.longway.framework.util.LogUtils;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +23,7 @@ import java.util.concurrent.TimeUnit;
  * 线程管理类，所有线程资源的申请都应该在这里
  */
 public class ThreadPoolManager {
+    private static final String TAG = ThreadPoolManager.class.getSimpleName();
     // 是否打印线程情况
     private static final boolean OPTIMIZE_DEBUG = BuildConfig.DEBUG;
 
@@ -53,9 +58,9 @@ public class ThreadPoolManager {
         // 耗时任务
         mPoolArray[LONG_TASK_POOL] = new ThreadPoolExecutorWarp(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>());  // 等价于Executors.newCachedThreadPool();
         // 短小任务
-        mPoolArray[SHORT_TASK_POOL] = new ThreadPoolExecutorWarp(CORE_POOL_SIZE, MAX_POOL_SIZE, 10L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(128));
+        mPoolArray[SHORT_TASK_POOL] = new ThreadPoolExecutorWarp(CORE_POOL_SIZE, MAX_POOL_SIZE, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(128));
         // 图片处理任务
-        mPoolArray[PIC_TASK_POOL] = new ThreadPoolExecutorWarp(CORE_POOL_SIZE, MAX_POOL_SIZE, 60L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+        mPoolArray[PIC_TASK_POOL] = new ThreadPoolExecutorWarp(CORE_POOL_SIZE, MAX_POOL_SIZE, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         // 调优时候查看线程
         if (OPTIMIZE_DEBUG) {
@@ -117,10 +122,25 @@ public class ThreadPoolManager {
         }
     }
 
+    public boolean removeLongTask(ThreadPoolTask threadPoolTask) {
+        ThreadPoolExecutor pool = mPoolArray[LONG_TASK_POOL];
+        return pool.remove(threadPoolTask);
+    }
+
+    public boolean removeShortTask(ThreadPoolTask threadPoolTask) {
+        ThreadPoolExecutor pool = mPoolArray[SHORT_TASK_POOL];
+        return pool.remove(threadPoolTask);
+    }
+
+    public boolean removePicTask(ThreadPoolTask threadPoolTask) {
+        ThreadPoolExecutor pool = mPoolArray[PIC_TASK_POOL];
+        return pool.remove(threadPoolTask);
+    }
+
     /**
      * 提交耗时任务
      */
-    public synchronized void postLongTask(ThreadPoolTask task) {
+    public synchronized void postLongTask(ThreadPoolTask task) throws RejectedExecutionException {
         ThreadPoolExecutor pool = mPoolArray[LONG_TASK_POOL];
         if (!pool.isShutdown()) {
             pool.execute(task);
@@ -130,7 +150,7 @@ public class ThreadPoolManager {
     /**
      * 提交短小的任务到后台处理
      */
-    public synchronized void postShortTask(ThreadPoolTask task) {
+    public synchronized void postShortTask(ThreadPoolTask task) throws RejectedExecutionException {
         ThreadPoolExecutor pool = mPoolArray[SHORT_TASK_POOL];
         if (!pool.isShutdown()) {
             pool.execute(task);
@@ -143,7 +163,7 @@ public class ThreadPoolManager {
      * @param task
      * @return
      */
-    public synchronized Future postShortFutureTask(ThreadPoolTask task) {
+    public synchronized Future postShortFutureTask(ThreadPoolTask task) throws RejectedExecutionException {
         ThreadPoolExecutor pool = mPoolArray[SHORT_TASK_POOL];
         if (!pool.isShutdown()) {
             return pool.submit(task);
@@ -167,7 +187,7 @@ public class ThreadPoolManager {
     /**
      * 提交图片的任务到后台处理
      */
-    public synchronized void postPicTask(ThreadPoolTask task) {
+    public synchronized void postPicTask(ThreadPoolTask task) throws RejectedExecutionException {
         ThreadPoolExecutor pool = mPoolArray[PIC_TASK_POOL];
         if (!pool.isShutdown()) {
             pool.execute(task);
@@ -183,13 +203,123 @@ public class ThreadPoolManager {
         return mPoolArray[PIC_TASK_POOL];
     }
 
+
+    private void setRejectHandler(RejectedExecutionHandler rejectHandler, int taskType) {
+        if (mPoolArray == null) {
+            return;
+        }
+        if (taskType >= LONG_TASK_POOL && taskType <= PIC_TASK_POOL) {
+            ThreadPoolExecutor threadPoolExecutor = mPoolArray[taskType];
+            threadPoolExecutor.setRejectedExecutionHandler(rejectHandler);
+        }
+    }
+
+    public void setRejectShortTaskHandler(RejectedExecutionHandler rejectShortTaskHandler) {
+        setRejectHandler(rejectShortTaskHandler, SHORT_TASK_POOL);
+    }
+
+    public void setRejectLongTaskHandler(RejectedExecutionHandler rejectShortTaskHandler) {
+        setRejectHandler(rejectShortTaskHandler, LONG_TASK_POOL);
+    }
+
+    public void setRejectPicTaskHandler(RejectedExecutionHandler rejectShortTaskHandler) {
+        setRejectHandler(rejectShortTaskHandler, PIC_TASK_POOL);
+    }
+
+    private void setCorePoolSize(int corePoolSize, int taskType) {
+        if (mPoolArray == null) {
+            return;
+        }
+        if (taskType >= LONG_TASK_POOL && taskType <= PIC_TASK_POOL) {
+            ThreadPoolExecutor threadPoolExecutor = mPoolArray[taskType];
+            threadPoolExecutor.setCorePoolSize(corePoolSize);
+        }
+    }
+
+
+    public void setShortTaskCorePoolSize(int corePoolSize) {
+        setCorePoolSize(corePoolSize, SHORT_TASK_POOL);
+    }
+
+    public void setLongTaskCorePoolSize(int corePoolSize) {
+        setCorePoolSize(corePoolSize, LONG_TASK_POOL);
+    }
+
+    public void setPicTaskCorePoolSize(int corePoolSize) {
+        setCorePoolSize(corePoolSize, PIC_TASK_POOL);
+    }
+
+    private void setMaxPoolSize(int maxPoolSize, int taskType) {
+        if (mPoolArray == null) {
+            return;
+        }
+        if (taskType >= LONG_TASK_POOL && taskType <= PIC_TASK_POOL) {
+            ThreadPoolExecutor threadPoolExecutor = mPoolArray[taskType];
+            threadPoolExecutor.setMaximumPoolSize(maxPoolSize);
+        }
+    }
+
+    public void setShortTaskMaxPoolSize(int maxPoolSize) {
+        setMaxPoolSize(maxPoolSize, SHORT_TASK_POOL);
+    }
+
+    public void setLongTaskMaxPoolSize(int maxPoolSize) {
+        setMaxPoolSize(maxPoolSize, LONG_TASK_POOL);
+    }
+
+    public void setPicTaskMaxPoolSize(int maxPoolSize) {
+        setMaxPoolSize(maxPoolSize, PIC_TASK_POOL);
+    }
+
+    private void setKeepAliveTime(long time, TimeUnit timeUnit, int taskType) {
+        if (mPoolArray == null) {
+            return;
+        }
+        if (taskType >= LONG_TASK_POOL && taskType <= PIC_TASK_POOL) {
+            ThreadPoolExecutor threadPoolExecutor = mPoolArray[taskType];
+            threadPoolExecutor.setKeepAliveTime(time, timeUnit);
+        }
+    }
+
+    public void setShortTaskPoolKeepAliveTime(long time, TimeUnit timeUnit) {
+        setKeepAliveTime(time, timeUnit, SHORT_TASK_POOL);
+    }
+
+    public void setLongTaskPoolKeepAliveTime(long time, TimeUnit timeUnit) {
+        setKeepAliveTime(time, timeUnit, LONG_TASK_POOL);
+    }
+
+    public void setPicTaskPoolKeepAliveTime(long time, TimeUnit timeUnit) {
+        setKeepAliveTime(time, timeUnit, PIC_TASK_POOL);
+    }
+
     /**
-     * 关闭真个线程池
+     * 关闭线程池
      */
     public synchronized void exit() {
+        if (mPoolArray == null) {
+            return;
+        }
         for (ThreadPoolExecutor pool : mPoolArray) {
             if (!pool.isShutdown()) {
-                pool.shutdownNow();
+                List<Runnable> runnables = pool.shutdownNow();
+                Log.d(TAG, "cancel runnable count: " + runnables.size());
+
+            }
+        }
+        mPoolArray = null;
+    }
+
+    /**
+     * 安全关闭线程池,保证先前任务队列任务执行完成
+     */
+    public synchronized void safeExit() {
+        if (mPoolArray == null) {
+            return;
+        }
+        for (ThreadPoolExecutor pool : mPoolArray) {
+            if (!pool.isShutdown()) {
+                pool.shutdown();
             }
         }
         mPoolArray = null;

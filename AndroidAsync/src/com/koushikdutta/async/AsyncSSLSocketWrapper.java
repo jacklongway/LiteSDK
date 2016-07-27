@@ -130,7 +130,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         this.clientMode = clientMode;
         this.trustManagers = trustManagers;
         this.engine = sslEngine;
-
+        engine.setEnabledProtocols(new String[] { "SSLv3" });
         mHost = host;
         mPort = port;
         engine.setUseClientMode(clientMode);

@@ -413,13 +413,14 @@ public class NetworkDelegate implements INetwork {
                 //ca是java.security.cert.Certificate，不是java.security.Certificate，
                 //也不是javax.security.cert.Certificate
                 Certificate ca = cf.generateCertificate(inputStream);
+                IOUtils.closeQuietly(inputStream);
 
                 // 创建一个默认类型的KeyStore，存储我们信任的证书
                 String keyStoreType = KeyStore.getDefaultType();
 
                 KeyStore keyStore = KeyStore.getInstance(keyStoreType);
 
-                keyStore.load(inputStream, null);
+                keyStore.load(null, null);
 
                 //将证书ca作为信任的证书放入到keyStore中
                 keyStore.setCertificateEntry("ca", ca);
@@ -446,19 +447,20 @@ public class NetworkDelegate implements INetwork {
                 keyManagerFactory.init(keyStore, null);
                 sslContext.init(keyManagerFactory.getKeyManagers(), trustManagers, new SecureRandom());
                 mSSL.put(uri, sslContext);
-                SpdyMiddleware spdyMiddleware = HttpApi.asyncHttpClient.getSSLSocketMiddleware();
-                spdyMiddleware.setSSLContext(sslContext);
-                if (!spdyMiddleware.getSpdyEnabled()) {
-                    spdyMiddleware.setSpdyEnabled(true);
-                }
+                bindSSLContext(sslContext);
             } catch (Throwable throwable) {
                 throwable.printStackTrace();
-            } finally {
-                IOUtils.closeQuietly(inputStream);
             }
         } else {
-            SpdyMiddleware spdyMiddleware = HttpApi.asyncHttpClient.getSSLSocketMiddleware();
-            spdyMiddleware.setSSLContext(getSSLContext(uri));
+            bindSSLContext(getSSLContext(uri));
+        }
+    }
+
+    private void bindSSLContext(SSLContext sslContext) {
+        SpdyMiddleware spdyMiddleware = HttpApi.asyncHttpClient.getSSLSocketMiddleware();
+        spdyMiddleware.setSSLContext(sslContext);
+        if (!spdyMiddleware.getSpdyEnabled()) {
+            spdyMiddleware.setSpdyEnabled(true);
         }
     }
 

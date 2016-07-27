@@ -1,7 +1,6 @@
 package com.longway.framework.util;
 
-import android.app.Activity;
-import android.app.Service;
+import android.app.Application;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Looper;
@@ -39,10 +38,7 @@ public class Utils {
         if (context == null) {
             throw new NullPointerException("context must be not null");
         }
-        if (context instanceof Activity) {
-            return context.getApplicationContext();
-        }
-        if (context instanceof Service) {
+        if (!(context instanceof Application)) {
             return context.getApplicationContext();
         }
         return context;

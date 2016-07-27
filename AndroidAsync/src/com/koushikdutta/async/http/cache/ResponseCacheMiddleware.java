@@ -1,7 +1,6 @@
 package com.koushikdutta.async.http.cache;
 
 import android.net.Uri;
-import android.text.TextUtils;
 import android.util.Base64;
 
 import com.koushikdutta.async.AsyncSSLSocket;
@@ -68,15 +67,21 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     private int networkCount;
     private int cacheStoreCount;
 
-    @Override
-    public void onHeadersReceived(OnHeadersReceivedDataOnRequestSentData data) {
-        super.onHeadersReceived(data);
-
-        // do more checking here, since uri may not necessarily be http or have a host, etc.
-        String cache = cacheHeaders.get(data.request.toURLString());
-        if (!TextUtils.isEmpty(cache))
-            data.response.headers().set("Cache-Control", cache);
+    private ResponseCacheMiddleware() {
     }
+
+    public static ResponseCacheMiddleware addCache(AsyncHttpClient client, File cacheDir, long size) throws IOException {
+        for (AsyncHttpClientMiddleware middleware: client.getMiddleware()) {
+            if (middleware instanceof ResponseCacheMiddleware)
+                throw new IOException("Response cache already added to http client");
+        }
+        ResponseCacheMiddleware ret = new ResponseCacheMiddleware();
+        ret.server = client.getServer();
+        ret.cache = new FileCache(cacheDir, size, false);
+        client.insertMiddleware(ret);
+        return ret;
+    }
+
 
     Hashtable<String, String> cacheHeaders = new Hashtable<String, String>();
 
@@ -90,29 +95,14 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         cacheHeaders.put(host, cacheControl);
     }
 
-    private ResponseCacheMiddleware() {
-    }
-
-    public static ResponseCacheMiddleware addCache(AsyncHttpClient client, File cacheDir, long size) throws IOException {
-        for (AsyncHttpClientMiddleware middleware : client.getMiddleware()) {
-            if (middleware instanceof ResponseCacheMiddleware)
-                throw new IOException("Response cache already added to http client");
-        }
-        ResponseCacheMiddleware ret = new ResponseCacheMiddleware();
-        ret.server = client.getServer();
-        ret.cache = new FileCache(cacheDir, size, true);
-        client.insertMiddleware(ret);
-        return ret;
-    }
-
     public FileCache getFileCache() {
         return cache;
     }
-
+    
     public boolean getCaching() {
         return caching;
     }
-
+    
     public void setCaching(boolean caching) {
         this.caching = caching;
     }
@@ -146,7 +136,8 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             }
             contentLength = snapshot[ENTRY_BODY].available();
             entry = new Entry(snapshot[ENTRY_METADATA]);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             // Give up because the cache cannot be read.
             networkCount++;
             StreamUtility.closeQuietly(snapshot);
@@ -167,7 +158,8 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         try {
             responseHeadersMap = candidate.getHeaders();
             cachedResponseBody = candidate.getBody();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             networkCount++;
             StreamUtility.closeQuietly(snapshot);
             return null;
@@ -205,7 +197,8 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             SimpleCancellable ret = new SimpleCancellable();
             ret.setComplete();
             return ret;
-        } else if (responseSource == ResponseSource.CONDITIONAL_CACHE) {
+        }
+        else if (responseSource == ResponseSource.CONDITIONAL_CACHE) {
             data.request.logi("Response may be served from conditional cache");
             CacheData cacheData = new CacheData();
             cacheData.snapshot = snapshot;
@@ -214,7 +207,8 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             cacheData.candidate = candidate;
             data.state.put("cache-data", cacheData);
             return null;
-        } else {
+        }
+        else {
             data.request.logd("Response can not be served from cache");
             // NETWORK or other
             networkCount++;
@@ -230,7 +224,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     public int getCacheHitCount() {
         return cacheHitCount;
     }
-
+    
     public int getNetworkCount() {
         return networkCount;
     }
@@ -302,7 +296,8 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             entry.writeTo(editor);
             // create the file
             editor.newOutputStream(ENTRY_BODY);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             // Log.e(LOGTAG, "error", e);
             editor.abort();
             networkCount++;
@@ -337,7 +332,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 cacher.commit();
         }
     }
-
+    
     public void clear() {
         if (cache != null) {
             cache.clear();
@@ -350,7 +345,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         long contentLength;
         ResponseHeaders cachedResponseHeaders;
     }
-
+    
     private static class BodyCacher extends FilteredDataEmitter {
         EntryEditor editor;
         ByteBufferList cached;
@@ -382,17 +377,21 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                             ByteBuffer b = bb.remove();
                             try {
                                 ByteBufferList.writeOutputStream(outputStream, b);
-                            } finally {
+                            }
+                            finally {
                                 copy.add(b);
                             }
                         }
-                    } else {
+                    }
+                    else {
                         abort();
                     }
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 abort();
-            } finally {
+            }
+            finally {
                 bb.get(copy);
                 copy.get(bb);
             }
@@ -432,10 +431,9 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         private boolean paused;
         private Allocator allocator = new Allocator();
         boolean allowEnd;
-
         public CachedBodyEmitter(EntryCacheResponse cacheResponse, long contentLength) {
             this.cacheResponse = cacheResponse;
-            allocator.setCurrentAlloc((int) contentLength);
+            allocator.setCurrentAlloc((int)contentLength);
         }
 
         Runnable sendCachedDataRunnable = new Runnable() {
@@ -467,7 +465,8 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 allocator.track(read);
                 buffer.limit(read);
                 pending.add(buffer);
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 allowEnd = true;
                 report(e);
                 return;
@@ -522,7 +521,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             super.report(e);
         }
     }
-
+    
     private static final class Entry {
         private final String uri;
         private final RawHeaders varyHeaders;
@@ -606,9 +605,9 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 //                    peerCertificates = readCertArray(reader);
 //                    localCertificates = readCertArray(reader);
 //                } else {
-                cipherSuite = null;
-                peerCertificates = null;
-                localCertificates = null;
+                    cipherSuite = null;
+                    peerCertificates = null;
+                    localCertificates = null;
 //                }
             } finally {
                 StreamUtility.closeQuietly(reader, in);
@@ -632,9 +631,9 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 //                peerCertificates = peerCertificatesNonFinal;
 //                localCertificates = httpsConnection.getLocalCertificates();
 //            } else {
-            cipherSuite = null;
-            peerCertificates = null;
-            localCertificates = null;
+                cipherSuite = null;
+                peerCertificates = null;
+                localCertificates = null;
 //            }
         }
 
@@ -708,11 +707,11 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
 
         public boolean matches(Uri uri, String requestMethod,
-                               Map<String, List<String>> requestHeaders) {
+                Map<String, List<String>> requestHeaders) {
             return this.uri.equals(uri.toString())
                     && this.requestMethod.equals(requestMethod)
                     && new ResponseHeaders(uri, responseHeaders)
-                    .varyMatches(varyHeaders.toMultimap(), requestHeaders);
+                            .varyMatches(varyHeaders.toMultimap(), requestHeaders);
         }
     }
 
@@ -725,13 +724,11 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             this.snapshot = snapshot;
         }
 
-        @Override
-        public Map<String, List<String>> getHeaders() {
+        @Override public Map<String, List<String>> getHeaders() {
             return entry.responseHeaders.toMultimap();
         }
 
-        @Override
-        public FileInputStream getBody() {
+        @Override public FileInputStream getBody() {
             return snapshot;
         }
     }
@@ -756,7 +753,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         boolean closed;
         boolean open;
         CompletedCallback closedCallback;
-
         public CachedSocket(EntryCacheResponse cacheResponse, long contentLength) {
             super(cacheResponse, contentLength);
             allowEnd = true;
@@ -822,7 +818,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         File[] temps;
         FileOutputStream[] outs;
         boolean done;
-
         public EntryEditor(String key) {
             this.key = key;
             temps = cache.getTempFiles(ENTRY_COUNT);

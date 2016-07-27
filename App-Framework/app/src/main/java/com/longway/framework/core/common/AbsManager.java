@@ -31,6 +31,9 @@ public abstract class AbsManager<T> {
     }
 
     public T getCurrentUse() {
+        if (mCurrentImpl == null) {
+            return null;
+        }
         return mImpls.get(mCurrentImpl);
     }
 }

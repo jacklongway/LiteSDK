@@ -417,20 +417,24 @@ public abstract class BaseActivity extends AppCompatActivity implements HandlerC
 
     protected abstract int getFragmentContainerId();
 
-    protected void addFragment(Class<? extends BaseFragment> clz, Bundle params) {
+    public Fragment addFragment(Class<? extends BaseFragment> clz, Bundle params) {
         if (clz == null) {
-            return;
+            return null;
         }
-        addFragment(new FragmentBuildParams(clz, params));
+        return addFragment(new FragmentBuildParams(clz, params));
     }
 
-    protected void addFragment(FragmentBuildParams fragmentBuildParams) {
+    public Fragment addFragment(Class<? extends BaseFragment> clz) {
+        return addFragment(new FragmentBuildParams(clz, null));
+    }
+
+    public Fragment addFragment(FragmentBuildParams fragmentBuildParams) {
         if (fragmentBuildParams == null) {
-            return;
+            return null;
         }
         Class<? extends BaseFragment> clz = fragmentBuildParams.mClz;
         if (clz == null) {
-            return;
+            return null;
         }
         try {
 
@@ -441,7 +445,7 @@ public abstract class BaseActivity extends AppCompatActivity implements HandlerC
             }
             BaseFragment baseFragment = mCurrentFragment;
             if (baseFragment == fragment) {
-                return;
+                return fragment;
             }
             mCurrentFragment = fragment;
             fragment.onEnter(); // enter perform logic
@@ -458,14 +462,16 @@ public abstract class BaseActivity extends AppCompatActivity implements HandlerC
                 baseFragment.onLeave();
             }
             isWarningClose = false;
+            return fragment;
         } catch (Fragment.InstantiationException ex) {
             ex.printStackTrace();
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
+        return null;
     }
 
-    protected void popTopFragment(Bundle bundle) {
+    public void popTopFragment(Bundle bundle) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         fragmentManager.popBackStackImmediate();
         int c = fragmentManager.getBackStackEntryCount();
@@ -479,7 +485,7 @@ public abstract class BaseActivity extends AppCompatActivity implements HandlerC
         }
     }
 
-    protected void popToRootFragment(Bundle bundle) {
+    public void popToRootFragment(Bundle bundle) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         int c = fragmentManager.getBackStackEntryCount();
         if (c <= 1) {
@@ -492,7 +498,7 @@ public abstract class BaseActivity extends AppCompatActivity implements HandlerC
         popTopFragment(bundle);
     }
 
-    protected void goToFragment(Class<? extends BaseFragment> clz, Bundle bundle) {
+    public void goToFragment(Class<? extends BaseFragment> clz, Bundle bundle) {
         if (clz == null) {
             return;
         }

@@ -50,10 +50,18 @@ public class ThreadPoolExecutorWarp extends ThreadPoolExecutor {
         }
         mPauseReentrantLock.lock();
         try {
+            if (mPause.get()) {// recheck
+                return;
+            }
             mPause.set(true);
         } finally {
             mPauseReentrantLock.unlock();
         }
+    }
+
+    @Override
+    protected void terminated() {
+        super.terminated();
     }
 
     public void resume() {
@@ -62,6 +70,9 @@ public class ThreadPoolExecutorWarp extends ThreadPoolExecutor {
         }
         mPauseReentrantLock.lock();
         try {
+            if (!mPause.get()) {// recheck
+                return;
+            }
             mPause.set(false);
             mPauseCondition.signalAll();
         } finally {

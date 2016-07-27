@@ -6,6 +6,25 @@ package com.longway.framework.executor;
 public abstract class ThreadPoolTask<T> implements Runnable {
     protected String mName;
     protected T mParameter;
+    private boolean mCanceled = false;
+    private boolean mFinished = false;
+    private boolean mRunning = false;
+
+    public boolean isCanceled() {
+        return mCanceled;
+    }
+
+    public boolean isFinished() {
+        return mFinished;
+    }
+
+    public boolean isRunning() {
+        return mRunning;
+    }
+
+    public void setCanceled(boolean canceled) {
+        this.mCanceled = canceled;
+    }
 
     public abstract void doTask(T parameter);
 
@@ -22,9 +41,19 @@ public abstract class ThreadPoolTask<T> implements Runnable {
         return this;
     }
 
+    protected void onCancel() {
+
+    }
+
     @Override
     public void run() {
-        doTask(mParameter);
+        if (!mCanceled) {
+            mRunning = true;
+            doTask(mParameter);
+            mFinished = true;
+        } else {
+            onCancel();
+        }
     }
 
     @Override

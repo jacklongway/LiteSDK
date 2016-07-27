@@ -7,29 +7,55 @@ import android.widget.Toast;
 import com.longway.framework.executor.ThreadPoolTask;
 import com.longway.framework.executor.UiThreadManager;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Created by longway on 16/6/19.
  * Email:longway1991117@sina.com
  */
 
 public class ToastUtils {
-    private ToastUtils() {
+    private static final String RAW = "raw";
+    private static final String CUSTOM = "custom";
+    private static final ConcurrentHashMap<String, Toast> TOAST_CONCURRENT_HASH_MAP = new ConcurrentHashMap<>();
 
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            TOAST_CONCURRENT_HASH_MAP.clear();
+        } finally {
+            super.finalize();
+        }
     }
 
     private static Toast createToast(Context context, String msg, int duration) {
         if (msg == null) {
-            throw new NullPointerException("msg must be not null");
+            throw new NullPointerException("msg==null");
         }
-        Toast toast = Toast.makeText(Utils.convertContext(context), msg, duration);
+        final ConcurrentHashMap<String, Toast> map = TOAST_CONCURRENT_HASH_MAP;
+        Toast toast;
+        if (!map.containsKey(RAW)) {
+            toast = Toast.makeText(Utils.convertContext(context), msg, duration);
+            map.put(RAW, toast);
+        } else {
+            toast = map.get(RAW);
+            toast.setText(msg);
+        }
         return toast;
     }
 
     private static Toast createToast(Context context, View contentView, int duration) {
         if (contentView == null) {
-            throw new NullPointerException("contentView must be not null");
+            throw new NullPointerException("contentView==null");
         }
-        Toast toast = new Toast(Utils.convertContext(context));
+        final ConcurrentHashMap<String, Toast> map = TOAST_CONCURRENT_HASH_MAP;
+        Toast toast;
+        if (!map.containsKey(CUSTOM)) {
+            toast = new Toast(Utils.convertContext(context));
+            map.put(CUSTOM, toast);
+        } else {
+            toast = map.get(CUSTOM);
+        }
         toast.setDuration(duration);
         toast.setView(contentView);
         return toast;

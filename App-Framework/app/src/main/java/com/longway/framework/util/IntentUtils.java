@@ -1,16 +1,29 @@
 package com.longway.framework.util;
 
+import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
+import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.ContactsContract;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import com.longway.framework.ui.activities.BaseActivity;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import static com.longway.framework.util.FileUtils.getFileExtension;
+import static com.longway.framework.util.FileUtils.sendBroadcastToFileScanner;
 
 public class IntentUtils {
     private static final String INTENT_INSTANCE_EXCEPTION = "IntentUtil not instance";
@@ -39,6 +52,10 @@ public class IntentUtils {
         activity.startActivityForResult(intent, requestCode);
     }
 
+    public static boolean hasCamera(Context context) {
+        return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA);
+    }
+
     /**
      * 拍照
      *
@@ -53,7 +70,11 @@ public class IntentUtils {
         }
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(outPath));
-        activity.startActivityForResult(intent, requestCode);
+        try {
+            activity.startActivityForResult(intent, requestCode);
+        } catch (ActivityNotFoundException ex) {
+            ex.printStackTrace();
+        }
     }
 
     /**
@@ -101,6 +122,117 @@ public class IntentUtils {
         intent.putExtra("return-data", false);// 不返回缩略图
         intent.putExtra("noFaceDetection", true);// 关闭人脸识别
         activity.startActivityForResult(intent, CROP);
+    }
+
+    /**
+     * 处理拍照
+     *
+     * @param context
+     * @param file
+     * @return
+     */
+    public static File handleCameraFile(Context context, File file) {
+        long start = System.currentTimeMillis();
+        BufferedOutputStream outputStream = null;
+        if (!FileUtils.isValidateFile(file.getAbsolutePath())) {
+            FileUtils.deleteFile(file, false);
+            return null;
+        }
+        try {
+            final int degress = BitmapHelper.readPictureDegree(file
+                    .getAbsolutePath());
+            if (degress != 0) {
+                int[] imageSize = BitmapDecoder.getWidthAndheight(file
+                        .getAbsolutePath());
+                Bitmap bitmap = BitmapDecoder.getBitmap(imageSize[0],
+                        imageSize[1], file.getAbsolutePath());
+                Bitmap bmp = BitmapDecoder.rotaingImageView(degress, bitmap);
+                if (bitmap != null && !bitmap.isRecycled()) {
+                    bitmap.recycle();
+                    bitmap = null;
+                }
+                File f = FileUtils.getExternalCacheDir(context, context.getApplicationInfo().className + "/tmp");
+                if (!f.exists()) {
+                    f.mkdirs();
+                }
+                File dest = new File(f, System.currentTimeMillis() + "." + getFileExtension(file.getAbsolutePath()));
+                outputStream = new BufferedOutputStream(new FileOutputStream(
+                        dest), 8192);
+                bmp.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+                file.delete();
+                file = null;
+                file = f;
+                if (bmp != null && !bmp.isRecycled()) {
+                    bmp.recycle();
+                    bmp = null;
+                }
+            }
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+        } catch (OutOfMemoryError error) {
+
+        } finally {
+            if (outputStream != null) {
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                outputStream = null;
+            }
+        }
+        long end = System.currentTimeMillis();
+        Log.i("time", (end - start) + "");
+        // 发送扫描指令
+        sendBroadcastToFileScanner(context, file);
+        return file;
+    }
+
+    public static final String CONTENT = "content";
+    public static final String FILE = "file";
+
+    /**
+     * 从contentprovider 获取文件名
+     *
+     * @param ctx
+     * @param uri
+     * @return
+     */
+    public static String getFilePath(Context ctx, Uri uri) {
+        if (ctx == null || uri == null) {
+            return null;
+        }
+        ContentResolver resolver = ctx.getContentResolver();
+        if (resolver == null) {
+            return null;
+        }
+
+        String scheme = uri.getScheme();
+        // from provider
+        if (CONTENT.equalsIgnoreCase(scheme)) {
+            String[] projection = {MediaStore.MediaColumns.DATA};
+            Cursor cursor = resolver.query(uri, projection, null, null, null);
+            if (cursor != null && cursor.moveToNext()) {
+                try {
+                    String path = cursor.getString(cursor
+                            .getColumnIndex(MediaStore.MediaColumns.DATA));
+                    return path;
+                } catch (Exception e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } finally {
+                    if (cursor != null) {
+                        cursor.close();
+                        cursor = null;
+                    }
+                }
+            }
+            // from file://
+        } else if (FILE.equalsIgnoreCase(scheme)) {
+            return uri.getPath();
+        }
+        return null;
     }
 
     /**

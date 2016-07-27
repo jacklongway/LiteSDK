@@ -1,18 +1,12 @@
 package com.longway.framework.util;
 
 import android.content.ActivityNotFoundException;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.Bitmap.CompressFormat;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.StatFs;
-import android.provider.MediaStore;
 import android.text.TextUtils;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 
@@ -28,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
 
 /**
@@ -70,6 +65,55 @@ public class FileUtils {
         }
         File file = new File(path);
         return isFileExist(path) && file.length() > 0;
+    }
+
+    public static final void copyFile(File src, File des) {
+        FileInputStream fileInputStream = null;
+        FileOutputStream fileOutputStream = null;
+        try {
+            fileInputStream = new FileInputStream(src);
+            fileOutputStream = new FileOutputStream(des);
+            FileChannel ic = fileInputStream.getChannel();
+            FileChannel oc = fileOutputStream.getChannel();
+            ic.transferTo(0, ic.size(), oc);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            IOUtils.closeQuietly(fileInputStream);
+            IOUtils.closeQuietly(fileOutputStream);
+        }
+    }
+
+    public static final String calculateFileSizeFormat(String path) {
+        return calculateFileSizeFormat(new File(path));
+    }
+
+    public static final long calculateFileSize(String path) {
+        return calculateFileSize(new File(path));
+    }
+
+    public static final long calculateFileSize(File f) {
+        long size = 0;
+        if (f == null) {
+            return size;
+        }
+        if (!f.exists()) {
+            return size;
+        }
+        if (f.isFile()) {
+            size += f.length();
+        } else if (f.isDirectory()) {
+            for (File file : f.listFiles()) {
+                size += calculateFileSize(file);
+            }
+        }
+        return size;
+    }
+
+    public static final String calculateFileSizeFormat(File f) {
+        return calcauteSize(calculateFileSize(f));
     }
 
     /**
@@ -128,8 +172,7 @@ public class FileUtils {
         if (file == null) {
             return file;
         }
-        file = new File("/data/data/".concat(context.getPackageName().concat(
-                "/cache")));
+        file = new File(context.getCacheDir().getAbsolutePath());
         return file;
     }
 
@@ -303,6 +346,8 @@ public class FileUtils {
     }
 
 
+    private static final String[] IMAGE = {"jpg", "jpeg", "png", "JPG", "JPEG", "PNG"};
+
     /**
      * 判断是否是图像
      *
@@ -311,10 +356,15 @@ public class FileUtils {
      */
     public static boolean isImage(String file) {
         String extension = getFileExtension(file);
-        return "jpg".equalsIgnoreCase(extension)
-                || "png".equalsIgnoreCase(extension)
-                || "jpeg".equalsIgnoreCase(extension);
+        for (String suffix : IMAGE) {
+            if (extension != null && extension.endsWith(suffix)) {
+                return true;
+            }
+        }
+        return false;
     }
+
+    private static final String[] VIDEO = {"mp4", "3gp", "avi", "flv", "MP4", "3GP", "AVI", "FLV"};
 
     /**
      * 判断是否是视频
@@ -324,10 +374,12 @@ public class FileUtils {
      */
     public static boolean isVideo(String file) {
         String extension = getFileExtension(file);
-        return "mp4".equalsIgnoreCase(extension)
-                || "3gp".equalsIgnoreCase(extension)
-                || "avi".equalsIgnoreCase(extension)
-                || "flv".equalsIgnoreCase(extension);
+        for (String suffix : VIDEO) {
+            if (extension != null && extension.endsWith(suffix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -449,116 +501,6 @@ public class FileUtils {
         return format.format(byteSize * 1.0f / T) + "T";
     }
 
-    public static final String CONTENT = "content";
-    public static final String FILE = "file";
-
-    /**
-     * 从contentprovider 获取文件名
-     *
-     * @param ctx
-     * @param uri
-     * @return
-     */
-    public static String getFilePath(Context ctx, Uri uri) {
-        if (ctx == null || uri == null) {
-            return null;
-        }
-        ContentResolver resolver = ctx.getContentResolver();
-        if (resolver == null) {
-            return null;
-        }
-
-        String scheme = uri.getScheme();
-        // from provider
-        if (CONTENT.equalsIgnoreCase(scheme)) {
-            String[] projection = {MediaStore.MediaColumns.DATA};
-            Cursor cursor = resolver.query(uri, projection, null, null, null);
-            if (cursor != null && cursor.moveToNext()) {
-                try {
-                    String path = cursor.getString(cursor
-                            .getColumnIndex(MediaStore.MediaColumns.DATA));
-                    return path;
-                } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } finally {
-                    if (cursor != null) {
-                        cursor.close();
-                        cursor = null;
-                    }
-                }
-            }
-            // from file://
-        } else if (FILE.equalsIgnoreCase(scheme)) {
-            return uri.getPath();
-        }
-        return null;
-    }
-
-    /**
-     * 处理拍照
-     *
-     * @param context
-     * @param file
-     * @return
-     */
-    public static File handleCameraFile(Context context, File file) {
-        long start = System.currentTimeMillis();
-        BufferedOutputStream outputStream = null;
-        if (!FileUtils.isValidateFile(file.getAbsolutePath())) {
-            FileUtils.deleteFile(file, false);
-            return null;
-        }
-        try {
-            final int degress = BitmapHelper.readPictureDegree(file
-                    .getAbsolutePath());
-            if (degress != 0) {
-                int[] imageSize = BitmapDecoder.getWidthAndheight(file
-                        .getAbsolutePath());
-                Bitmap bitmap = BitmapDecoder.getBitmap(imageSize[0],
-                        imageSize[1], file.getAbsolutePath());
-                Bitmap bmp = BitmapDecoder.rotaingImageView(degress, bitmap);
-                if (bitmap != null && !bitmap.isRecycled()) {
-                    bitmap.recycle();
-                    bitmap = null;
-                }
-                File f = FileUtils.getExternalCacheDir(context, context.getApplicationInfo().className + "/tmp");
-                if (!f.exists()) {
-                    f.mkdirs();
-                }
-                File dest = new File(f, System.currentTimeMillis() + "." + getFileExtension(file.getAbsolutePath()));
-                outputStream = new BufferedOutputStream(new FileOutputStream(
-                        dest), 8192);
-                bmp.compress(CompressFormat.JPEG, 100, outputStream);
-                file.delete();
-                file = null;
-                file = f;
-                if (bmp != null && !bmp.isRecycled()) {
-                    bmp.recycle();
-                    bmp = null;
-                }
-            }
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-        } catch (OutOfMemoryError error) {
-
-        } finally {
-            if (outputStream != null) {
-                try {
-                    outputStream.close();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-                outputStream = null;
-            }
-        }
-        long end = System.currentTimeMillis();
-        Log.i("time", (end - start) + "");
-        // 发送扫描指令
-        sendBroadcastToFileScanner(context, file);
-        return file;
-    }
 
     /**
      * 把信息保存到文件的操作(异步操作）
@@ -578,7 +520,7 @@ public class FileUtils {
             public void doTask(Object parameter) {
                 sb.append("|");
                 sb.append(info);
-                save2File(dir, fileName, info,false);
+                save2File(dir, fileName, info, false);
             }
         };
         ThreadPoolManager.getInstance().postShortTask(task);
@@ -593,7 +535,7 @@ public class FileUtils {
      */
     public static void saveToCacheFile(final String fileName, final String info, final boolean encrypt) {
         String path = AndroidApplication.getInstance().getCacheDir().getAbsolutePath();
-        save2File(path, fileName, info,false);
+        save2File(path, fileName, info, false);
     }
 
     /**
@@ -603,7 +545,7 @@ public class FileUtils {
      * @param fileName 文件名
      * @param info     写入的内容
      */
-    public static synchronized boolean save2File(final String dir, final String fileName, final String info,boolean append) {
+    public static synchronized boolean save2File(final String dir, final String fileName, final String info, boolean append) {
         FileOutputStream fos = null;
         try {
             byte[] infoStream;
@@ -620,7 +562,7 @@ public class FileUtils {
 
             // 写入
             File file = new File(dir, fileName);
-            fos = new FileOutputStream(file,append);
+            fos = new FileOutputStream(file, append);
             fos.write(infoStream);
             fos.flush();
         } catch (Throwable e) {
