@@ -40,3 +40,6 @@ captures/
 *.jks
 
 app/
+build.gradle
+gradle.properties
+settings.gradle
