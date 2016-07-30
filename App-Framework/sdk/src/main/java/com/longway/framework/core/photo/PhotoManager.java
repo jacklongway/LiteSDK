@@ -34,7 +34,6 @@ public class PhotoManager implements Application.ActivityLifecycleCallbacks {
     private Activity mActivity;
 
     private AndroidApplication getFrameworkApplication(Activity activity) {
-        this.mActivity = activity;
         Application application = (Application) activity.getApplicationContext();
         if (application instanceof AndroidApplication) {
             AndroidApplication androidApplication = (AndroidApplication) application;
@@ -44,6 +43,7 @@ public class PhotoManager implements Application.ActivityLifecycleCallbacks {
     }
 
     public PhotoManager(final Activity a, PhotoListener photoListener) {
+        this.mActivity = a;
         AndroidApplication androidApplication = getFrameworkApplication(a);
         if (androidApplication != null) {
             androidApplication.addActivityLifecycleCallback(this);
