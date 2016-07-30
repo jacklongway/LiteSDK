@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v7.app.AlertDialog;
 
-import com.longway.framework.AndroidApplication;
 import com.longway.framework.util.FileUtils;
 import com.longway.framework.util.IntentUtils;
 
@@ -33,21 +32,11 @@ public class PhotoManager implements Application.ActivityLifecycleCallbacks {
     private AlertDialog mAlertDialog;
     private Activity mActivity;
 
-    private AndroidApplication getFrameworkApplication(Activity activity) {
-        Application application = (Application) activity.getApplicationContext();
-        if (application instanceof AndroidApplication) {
-            AndroidApplication androidApplication = (AndroidApplication) application;
-            return androidApplication;
-        }
-        return null;
-    }
 
     public PhotoManager(final Activity a, PhotoListener photoListener) {
         this.mActivity = a;
-        AndroidApplication androidApplication = getFrameworkApplication(a);
-        if (androidApplication != null) {
-            androidApplication.addActivityLifecycleCallback(this);
-        }
+        Application androidApplication = a.getApplication();
+        androidApplication.registerActivityLifecycleCallbacks(this);
         this.mPhotoListener = photoListener;
     }
 
@@ -270,10 +259,8 @@ public class PhotoManager implements Application.ActivityLifecycleCallbacks {
     @Override
     public void onActivityDestroyed(Activity activity) {
         if (activity == mActivity) {
-            AndroidApplication androidApplication = getFrameworkApplication(activity);
-            if (androidApplication != null) {
-                androidApplication.removeActivityLifecycleCallback(PhotoManager.this);
-            }
+            Application androidApplication = activity.getApplication();
+            androidApplication.unregisterActivityLifecycleCallbacks(PhotoManager.this);
         }
     }
 }
