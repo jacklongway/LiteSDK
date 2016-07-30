@@ -1,6 +1,6 @@
 package com.longway.framework.util;
 
-import android.content.ActivityNotFoundException;
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -12,15 +12,14 @@ import android.net.Uri;
 import android.os.Build;
 import android.provider.ContactsContract;
 import android.provider.MediaStore;
-import android.util.Log;
 
+import com.longway.framework.core.photo.CropOptions;
 import com.longway.framework.ui.activities.BaseActivity;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 
 import static com.longway.framework.util.FileUtils.getFileExtension;
 import static com.longway.framework.util.FileUtils.sendBroadcastToFileScanner;
@@ -31,7 +30,7 @@ public class IntentUtils {
     public static final int TAKE_REQUEST_CODE = 0x1;
     public static final int PICK_CONTACTS_PHONE_NUMBER_REQUEST_CODE = 0x2;
     public static final int PICK_CONTACTS_NAME_REQUEST_CODE = 0x3;
-    public static final int CROP = 0x4;
+    public static final int CROP_REQUEST_CODE = 0x4;
 
     private IntentUtils() {
         throw new UnsupportedOperationException(INTENT_INSTANCE_EXCEPTION);
@@ -43,9 +42,9 @@ public class IntentUtils {
      * @param activity
      * @param requestCode
      */
-    public static void pickImage(BaseActivity activity, int requestCode) {
+    public static void pickImage(Activity activity, int requestCode) throws Exception {
         if (activity == null) {
-            throw new NullPointerException("activity not null");
+            throw new NullPointerException("activity==null");
         }
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
@@ -53,7 +52,38 @@ public class IntentUtils {
     }
 
     public static boolean hasCamera(Context context) {
-        return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA);
+        if (context == null) {
+            throw new NullPointerException("context==null");
+        }
+        try {
+            PackageManager packageManager = context.getPackageManager();
+            if (packageManager != null) {
+                return packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA);
+            }
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
+        return false;
+    }
+
+    public static boolean hasActivity(Context context, String action) {
+        if (context == null) {
+            throw new NullPointerException("context==null");
+        }
+        try {
+            PackageManager packageManager = context.getPackageManager();
+            if (packageManager != null) {
+                Intent intent = new Intent(action);
+                return !packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY).isEmpty();
+            }
+        } catch (RuntimeException e) {
+
+        } catch (Error error) {
+
+        } catch (Throwable throwable) {
+
+        }
+        return false;
     }
 
     /**
@@ -63,18 +93,20 @@ public class IntentUtils {
      * @param requestCode
      * @param outPath
      */
-    public static void takePicture(BaseActivity activity, int requestCode,
-                                   File outPath) {
+    public static void takePicture(Activity activity, int requestCode,
+                                   File outPath) throws Exception {
         if (activity == null) {
-            throw new NullPointerException("activity not null");
+            throw new NullPointerException("activity==null");
+        }
+        if (outPath == null) {
+            throw new NullPointerException("outPath==null");
+        }
+        if (outPath.isDirectory()) {
+            throw new IllegalArgumentException("outPath must be isFile");
         }
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(outPath));
-        try {
-            activity.startActivityForResult(intent, requestCode);
-        } catch (ActivityNotFoundException ex) {
-            ex.printStackTrace();
-        }
+        activity.startActivityForResult(intent, requestCode);
     }
 
     /**
@@ -83,7 +115,7 @@ public class IntentUtils {
      * @param activity
      * @param requestCode
      */
-    public static void pickContact(BaseActivity activity, int requestCode) {
+    public static void pickContact(BaseActivity activity, int requestCode) throws Exception {
         if (activity == null) {
             throw new NullPointerException("activity not null");
         }
@@ -95,33 +127,38 @@ public class IntentUtils {
      * 裁剪图片
      *
      * @param activity
-     * @param uri
-     * @param tempFile
+     * @param cropOptions
      */
-    public void cropPhoto(BaseActivity activity, Uri uri, File tempFile) {
+    public static void cropPhoto(Activity activity, CropOptions cropOptions) throws Exception {
         if (activity == null) {
-            throw new NullPointerException("activity not null");
+            throw new NullPointerException("activity==null");
         }
-        if (uri == null) {
-            throw new NullPointerException("uri not null");
+        if (cropOptions == null) {
+            throw new NullPointerException("cropOptions==null");
         }
-        if (tempFile == null) {
-            throw new NullPointerException("tempFile not null");
+        if (cropOptions.input == null) {
+            throw new NullPointerException("uri==null");
+        }
+        if (cropOptions.output == null) {
+            throw new NullPointerException("tempFile==null");
+        }
+        if (cropOptions.output.isDirectory()) {
+            throw new IllegalArgumentException("tempFile must be isFile");
         }
         Intent intent = new Intent("com.android.camera.action.CROP");//动作-裁剪
-        intent.setDataAndType(uri, "image/*");//类型
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(tempFile));//
-        intent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString());
+        intent.setDataAndType(cropOptions.input, "image/*");//类型
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(cropOptions.output));//
+        intent.putExtra("outputFormat", cropOptions.mCompressFormat.toString());//Bitmap.CompressFormat.JPEG.toString()
         intent.putExtra("crop", true);
-        intent.putExtra("aspectX", 1);// 裁剪比例
-        intent.putExtra("aspectY", 1);// 裁剪比例
-        intent.putExtra("outputX", 150);// 输出大小
-        intent.putExtra("outputY", 150);// 裁剪比例后输出比例
+        intent.putExtra("aspectX", cropOptions.aspectX);// 裁剪比例 1
+        intent.putExtra("aspectY", cropOptions.aspectY);// 裁剪比例 1
+        intent.putExtra("outputX", cropOptions.outputX);// 输出大小 150
+        intent.putExtra("outputY", cropOptions.outputY);// 裁剪比例后输出比例 150
         intent.putExtra("scale", true);// 缩放
         intent.putExtra("scaleUpIfNeeded", true);// 如果小于要求输出大小，就放大
         intent.putExtra("return-data", false);// 不返回缩略图
         intent.putExtra("noFaceDetection", true);// 关闭人脸识别
-        activity.startActivityForResult(intent, CROP);
+        activity.startActivityForResult(intent, CROP_REQUEST_CODE);
     }
 
     /**
@@ -132,13 +169,15 @@ public class IntentUtils {
      * @return
      */
     public static File handleCameraFile(Context context, File file) {
-        long start = System.currentTimeMillis();
         BufferedOutputStream outputStream = null;
-        if (!FileUtils.isValidateFile(file.getAbsolutePath())) {
+        if (!FileUtils.isValidateFile(file)) {
             FileUtils.deleteFile(file, false);
             return null;
         }
         try {
+            if (!FileUtils.sdcardAvailable()) {
+                return file;
+            }
             final int degress = BitmapHelper.readPictureDegree(file
                     .getAbsolutePath());
             if (degress != 0) {
@@ -146,44 +185,30 @@ public class IntentUtils {
                         .getAbsolutePath());
                 Bitmap bitmap = BitmapDecoder.getBitmap(imageSize[0],
                         imageSize[1], file.getAbsolutePath());
+                if (bitmap == null) {
+                    return null;
+                }
                 Bitmap bmp = BitmapDecoder.rotaingImageView(degress, bitmap);
-                if (bitmap != null && !bitmap.isRecycled()) {
-                    bitmap.recycle();
-                    bitmap = null;
+                if (bitmap == null) {
+                    return null;
                 }
-                File f = FileUtils.getExternalCacheDir(context, context.getApplicationInfo().className + "/tmp");
-                if (!f.exists()) {
-                    f.mkdirs();
-                }
+                BitmapHelper.recycleBitmap(bitmap);
+                File f = FileUtils.getExternalCacheDir(context, context.getCacheDir() + "/tmp");
                 File dest = new File(f, System.currentTimeMillis() + "." + getFileExtension(file.getAbsolutePath()));
                 outputStream = new BufferedOutputStream(new FileOutputStream(
                         dest), 8192);
                 bmp.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
                 file.delete();
-                file = null;
                 file = f;
-                if (bmp != null && !bmp.isRecycled()) {
-                    bmp.recycle();
-                    bmp = null;
-                }
+                BitmapHelper.recycleBitmap(bmp);
             }
         } catch (FileNotFoundException e) {
             // TODO Auto-generated catch block
         } catch (OutOfMemoryError error) {
 
         } finally {
-            if (outputStream != null) {
-                try {
-                    outputStream.close();
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-                outputStream = null;
-            }
+            IOUtils.closeQuietly(outputStream);
         }
-        long end = System.currentTimeMillis();
-        Log.i("time", (end - start) + "");
         // 发送扫描指令
         sendBroadcastToFileScanner(context, file);
         return file;
@@ -203,14 +228,13 @@ public class IntentUtils {
         if (ctx == null || uri == null) {
             return null;
         }
-        ContentResolver resolver = ctx.getContentResolver();
-        if (resolver == null) {
-            return null;
-        }
-
         String scheme = uri.getScheme();
         // from provider
         if (CONTENT.equalsIgnoreCase(scheme)) {
+            ContentResolver resolver = ctx.getContentResolver();
+            if (resolver == null) {
+                return null;
+            }
             String[] projection = {MediaStore.MediaColumns.DATA};
             Cursor cursor = resolver.query(uri, projection, null, null, null);
             if (cursor != null && cursor.moveToNext()) {
@@ -222,10 +246,7 @@ public class IntentUtils {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 } finally {
-                    if (cursor != null) {
-                        cursor.close();
-                        cursor = null;
-                    }
+                    IOUtils.closeQuietly(cursor);
                 }
             }
             // from file://
@@ -238,7 +259,7 @@ public class IntentUtils {
     /**
      * 打开网络设置界面
      */
-    public static void openNetworkSetting(BaseActivity activity) {
+    public static void openNetworkSetting(BaseActivity activity) throws RuntimeException, Error {
         Intent intent;
         if (android.os.Build.VERSION.SDK_INT > Build.VERSION_CODES.GINGERBREAD_MR1) {
             intent = new Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS);

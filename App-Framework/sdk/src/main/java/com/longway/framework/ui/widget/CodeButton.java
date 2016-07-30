@@ -31,6 +31,14 @@ public class CodeButton extends Button implements HandlerCallback, View.OnClickL
     private OnClickListener mOnclickListener;
     private ICode mICode;
 
+    public boolean isRunning() {
+        return mLen < WAIT;
+    }
+
+    public int waitTime() {
+        return mLen;
+    }
+
     public interface ICode {
         void remain(int len);
     }
@@ -124,7 +132,7 @@ public class CodeButton extends Button implements HandlerCallback, View.OnClickL
             if (mICode != null) {
                 mICode.remain(mLen);
             } else {
-                ToastUtils.showToast(getContext(), String.format(mHint, mLen),true);
+                ToastUtils.showToast(getContext(), String.format(mHint, mLen), true);
             }
         }
     }

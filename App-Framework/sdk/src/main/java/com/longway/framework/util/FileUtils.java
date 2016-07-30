@@ -53,6 +53,13 @@ public class FileUtils {
         return file.exists() && file.isFile();
     }
 
+    public static boolean isFileExist(File path) {
+        if (path == null) {
+            return false;
+        }
+        return path.exists() && path.isFile();
+    }
+
     /**
      * 验证文件是否是有效的
      *
@@ -65,6 +72,13 @@ public class FileUtils {
         }
         File file = new File(path);
         return isFileExist(path) && file.length() > 0;
+    }
+
+    public static boolean isValidateFile(File file) {
+        if (file == null) {
+            return false;
+        }
+        return isFileExist(file) && file.length() > 0;
     }
 
     public static final void copyFile(File src, File des) {
@@ -234,9 +248,9 @@ public class FileUtils {
      * @param size
      * @return
      */
-    public static boolean HasCapacity(String path, long size) {
+    public static boolean hasCapacity(String path, long size) {
         if (TextUtils.isEmpty(path)) {
-            throw new NullPointerException("path null");
+            throw new NullPointerException("path==null");
         }
         StatFs fs = new StatFs(path);
         long avaliableBlocks = fs.getAvailableBlocks();

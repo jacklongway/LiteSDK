@@ -1,9 +1,11 @@
 package com.longway.framework;
 
+import android.app.Activity;
 import android.app.Application;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.StrictMode;
 import android.text.TextUtils;
 
@@ -25,14 +27,23 @@ import java.util.List;
 /**
  * Created by longway on 15/7/26.
  */
-public class AndroidApplication extends Application implements ICrashConfiguration {
+public class AndroidApplication extends Application implements ICrashConfiguration, Application.ActivityLifecycleCallbacks {
 
-    private List<IMemoryInfo> sMemInfoList = new ArrayList<IMemoryInfo>();
+    private List<IMemoryInfo> sMemInfoList = new ArrayList<>();
     public static String sMainProcessName;
     private static AndroidApplication sInstance;
     private GlideManager mGlide;
     private AppCrashHandler mAppCrashHandler;
     private RefWatcher mRefWatcher;
+    private List<ActivityLifecycleCallbacks> mCallbacks = new ArrayList<>();
+
+    public void addActivityLifecycleCallback(ActivityLifecycleCallbacks activityLifecycleCallbacks) {
+        mCallbacks.add(activityLifecycleCallbacks);
+    }
+
+    public void removeActivityLifecycleCallback(ActivityLifecycleCallbacks activityLifecycleCallbacks) {
+        mCallbacks.remove(activityLifecycleCallbacks);
+    }
 
     public static AndroidApplication getInstance() {
         return sInstance;
@@ -83,6 +94,66 @@ public class AndroidApplication extends Application implements ICrashConfigurati
     @Override
     public boolean onSelfCompleteHandlerCrash() {
         return false;
+    }
+
+    @Override
+    public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+        Object[] callbacks = collectActivityLifecycleCallbacks();
+        if (callbacks != null) {
+            for (int i = 0; i < callbacks.length; i++) {
+                ((ActivityLifecycleCallbacks) callbacks[i]).onActivityCreated(activity,
+                        savedInstanceState);
+            }
+        }
+    }
+    private Object[] collectActivityLifecycleCallbacks() {
+        Object[] callbacks = null;
+        synchronized (mCallbacks) {
+            if (mCallbacks.size() > 0) {
+                callbacks = mCallbacks.toArray();
+            }
+        }
+        return callbacks;
+    }
+    @Override
+    public void onActivityStarted(Activity activity) {
+
+    }
+
+    @Override
+    public void onActivityResumed(Activity activity) {
+
+    }
+
+    @Override
+    public void onActivityPaused(Activity activity) {
+
+    }
+
+    @Override
+    public void onActivityStopped(Activity activity) {
+
+    }
+
+    @Override
+    public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+        Object[] callbacks = collectActivityLifecycleCallbacks();
+        if (callbacks != null) {
+            for (int i=0; i<callbacks.length; i++) {
+                ((ActivityLifecycleCallbacks)callbacks[i]).onActivitySaveInstanceState(activity,
+                        outState);
+            }
+        }
+    }
+
+    @Override
+    public void onActivityDestroyed(Activity activity) {
+        Object[] callbacks = collectActivityLifecycleCallbacks();
+        if (callbacks != null) {
+            for (int i=0; i<callbacks.length; i++) {
+                ((ActivityLifecycleCallbacks)callbacks[i]).onActivityDestroyed(activity);
+            }
+        }
     }
 
     /**
@@ -150,6 +221,7 @@ public class AndroidApplication extends Application implements ICrashConfigurati
         LogUtils.d("processName:" + processName);
         if (TextUtils.equals(processName, sMainProcessName)) {
             LogUtils.e(sMainProcessName.concat(" process init..."));
+            registerActivityLifecycleCallbacks(this);
             // 开始调试侦查器
             if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
                 StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()

@@ -93,7 +93,7 @@ public class SystemServiceManager {
      * @param name 最好使用系统Context 中定义的常量
      * @return
      */
-    public synchronized Object getService(String name) {
+    public  synchronized Object getService(String name) {
         Object service = null;
         if (mSystemService.containsKey(name)) {
             SoftReference sr = mSystemService.get(name);
