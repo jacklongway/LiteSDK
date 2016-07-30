@@ -227,12 +227,14 @@ public class PhotoManager implements Application.ActivityLifecycleCallbacks {
 
     @Override
     public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-        if (savedInstanceState != null) {
-            if (savedInstanceState.containsKey(EXTRA_CAMERA_OUT_PATH)) {
-                mOutPath = (File) savedInstanceState.getSerializable(EXTRA_CAMERA_OUT_PATH);
-            }
-            if (savedInstanceState.containsKey(EXTRA_CROP_TEMP_PATH)) {
-                mCropTempPath = (File) savedInstanceState.getSerializable(EXTRA_CROP_TEMP_PATH);
+        if (mActivity == activity) {
+            if (savedInstanceState != null) {
+                if (savedInstanceState.containsKey(EXTRA_CAMERA_OUT_PATH)) {
+                    mOutPath = (File) savedInstanceState.getSerializable(EXTRA_CAMERA_OUT_PATH);
+                }
+                if (savedInstanceState.containsKey(EXTRA_CROP_TEMP_PATH)) {
+                    mCropTempPath = (File) savedInstanceState.getSerializable(EXTRA_CROP_TEMP_PATH);
+                }
             }
         }
     }
