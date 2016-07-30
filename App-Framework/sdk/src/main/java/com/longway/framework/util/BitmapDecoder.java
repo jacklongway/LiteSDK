@@ -17,151 +17,174 @@ import java.io.StringWriter;
  */
 public class BitmapDecoder {
 
-	private BitmapDecoder() {
-	}
+    private BitmapDecoder() {
+    }
 
-	public static int calculateInSampleSize(String url, int maxWidth,
-			int maxHeight) {
-		Options options = new Options();
-		options.inJustDecodeBounds = true;
-		BitmapFactory.decodeFile(url, options);// options bug
-		return getSampleSize(maxWidth, maxHeight, options);
-	}
+    public static int calculateInSampleSize(String url, int maxWidth,
+                                            int maxHeight) {
+        Options options = new Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(url, options);
+        if (options.outWidth == -1 || options.outHeight == -1) {
+            updateOptions(url, options);
+        }
+        return getSampleSize(maxWidth, maxHeight, options);
+    }
 
-	public static int[] getWidthAndheight(String url) {
-		Options options = new Options();
-		options.inJustDecodeBounds = true;
-		BitmapFactory.decodeFile(url, options);
-		int[] size = new int[2];
-		size[0] = options.outWidth;
-		size[1] = options.outHeight;
-		return size;
-	}
+    private static void updateOptions(String url, Options options) {
+        ExifInterface exifInterface;
+        try {
+            exifInterface = new ExifInterface(url);
+            int width = exifInterface.getAttributeInt(ExifInterface.TAG_IMAGE_WIDTH, ExifInterface.ORIENTATION_NORMAL);//获取图片的宽度
+            int height = exifInterface.getAttributeInt(ExifInterface.TAG_IMAGE_LENGTH, ExifInterface.ORIENTATION_NORMAL);//获取图片的高度
+            options.outWidth = width;
+            options.outHeight = height;
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (OutOfMemoryError error) {
+            error.printStackTrace();
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
+    }
 
-	private static int getSampleSize(int maxWidth, int maxHeight,
-			Options options) {
-		final int height = options.outHeight;
-		final int width = options.outWidth;
-		int inSampleSize = 1;
+    public static int[] getWidthAndheight(String url) {
+        Options options = new Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(url, options);
+        int[] size = new int[2];
+        if (options.outWidth == -1 || options.outHeight == -1) {
+            updateOptions(url, options);
+        }
+        size[0] = options.outWidth;
+        size[1] = options.outHeight;
+        return size;
+    }
 
-		if (width > maxWidth || height > maxHeight) {
-			if (width > height) {
-				inSampleSize = Math.round((float) height / (float) maxHeight);
-			} else {
-				inSampleSize = Math.round((float) width / (float) maxWidth);
-			}
+    private static int getSampleSize(int maxWidth, int maxHeight,
+                                     Options options) {
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
 
-			final float totalPixels = width * height;
+        if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+                inSampleSize = Math.round((float) height / (float) maxHeight);
+            } else {
+                inSampleSize = Math.round((float) width / (float) maxWidth);
+            }
 
-			final float maxTotalPixels = maxWidth * maxHeight;
+            final float totalPixels = width * height;
 
-			while (totalPixels / (inSampleSize * inSampleSize) > maxTotalPixels) {
-				inSampleSize *= 2;
-			}
-		}
-		// 避免采样值小于1,即最大为原图
-		if (inSampleSize < 1) {
-			inSampleSize = 1;
-		}
-		return inSampleSize;
-	}
+            final float maxTotalPixels = maxWidth * maxHeight;
 
-	public static Bitmap getBitmap(int maxWidth, int maxHeight, String url) {
+            while (totalPixels / (inSampleSize * inSampleSize) > maxTotalPixels) {
+                inSampleSize *= 2;
+            }
+        }
+        // 避免采样值小于1,即最大为原图
+        if (inSampleSize < 1) {
+            inSampleSize = 1;
+        }
+        return inSampleSize;
+    }
 
-		Bitmap bitmap = getSafeBitmap(
-				calculateInSampleSize(url, maxWidth, maxHeight), url);
-		return bitmap;
-	}
+    public static Bitmap getBitmap(int maxWidth, int maxHeight, String url) {
 
-	public static Bitmap getSafeBitmap(int inSampleSize, String url) {
-		Options options = new Options();
-		Bitmap bitmap = null;
-		for (;;) {
-			try {
-				options.inSampleSize = inSampleSize;
-				bitmap = BitmapFactory.decodeFile(url, options);
-				break;
-			} catch (OutOfMemoryError e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				inSampleSize *= 2;
-			} catch (Throwable ex) {
-				printErrorStackInfo(ex);
-			}
-		}
-		return bitmap;
-	}
+        Bitmap bitmap = getSafeBitmap(
+                calculateInSampleSize(url, maxWidth, maxHeight), url);
+        return bitmap;
+    }
 
-	private static void printErrorStackInfo(Throwable ex) {
-		StringWriter writer = new StringWriter(0);
-		PrintWriter printWriter = new PrintWriter(writer);
-		ex.printStackTrace(printWriter);
-		Log.e("getSafeBitmap", writer.toString());
-	}
+    public static Bitmap getSafeBitmap(int inSampleSize, String url) {
+        Options options = new Options();
+        Bitmap bitmap;
+        for (; ; ) {
+            try {
+                options.inSampleSize = inSampleSize;
+                bitmap = BitmapFactory.decodeFile(url, options);
+                break;
+            } catch (OutOfMemoryError e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+                inSampleSize *= 2;
+            } catch (Throwable ex) {
+                printErrorStackInfo(ex);
+            }
+        }
+        return bitmap;
+    }
 
-	public static Bitmap getBitmap(int maxWidth, int maxHeight, Resources res,
-			int resId) {
+    private static void printErrorStackInfo(Throwable ex) {
+        StringWriter writer = new StringWriter(0);
+        PrintWriter printWriter = new PrintWriter(writer);
+        ex.printStackTrace(printWriter);
+        Log.e("getSafeBitmap", writer.toString());
+    }
 
-		Options options = new Options();
-		options.inJustDecodeBounds = true;
-		options.inSampleSize = getSampleSize(maxWidth, maxHeight, options);
-		options.inJustDecodeBounds = false;
-		Bitmap bitmap = BitmapFactory.decodeResource(res, resId, options);
-		return bitmap;
-	}
+    public static Bitmap getBitmap(int maxWidth, int maxHeight, Resources res,
+                                   int resId) {
 
-	public static Bitmap rotaingImageView(int angle, Bitmap bitmap) {
-		if (bitmap == null || bitmap.isRecycled()) {
-			return null;
-		}
-		// 旋转图片 动作
-		Matrix matrix = new Matrix();
-		matrix.postRotate(angle);
-		// 创建新的图片
-		int w = bitmap.getWidth();
-		int h = bitmap.getHeight();
-		Bitmap resizedBitmap = null;
-		for (;;) {
-			try {
-				resizedBitmap = Bitmap.createBitmap(bitmap, 0, 0, w, h, matrix,
-						true);
-				break;
-			} catch (OutOfMemoryError e) {
-				// TODO Auto-generated catch block
-				w *= 0.8;
-				h *= 0.8;
-				e.printStackTrace();
-			} catch (Throwable ex) {
-				printErrorStackInfo(ex);
-			}
+        Options options = new Options();
+        options.inJustDecodeBounds = true;
+        options.inSampleSize = getSampleSize(maxWidth, maxHeight, options);
+        options.inJustDecodeBounds = false;
+        Bitmap bitmap = BitmapFactory.decodeResource(res, resId, options);
+        return bitmap;
+    }
 
-		}
-		return resizedBitmap;
-	}
+    public static Bitmap rotaingImageView(int angle, Bitmap bitmap) {
+        if (bitmap == null || bitmap.isRecycled()) {
+            return null;
+        }
+        // 旋转图片 动作
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        // 创建新的图片
+        int w = bitmap.getWidth();
+        int h = bitmap.getHeight();
+        Bitmap resizedBitmap = null;
+        for (; ; ) {
+            try {
+                resizedBitmap = Bitmap.createBitmap(bitmap, 0, 0, w, h, matrix,
+                        true);
+                break;
+            } catch (OutOfMemoryError e) {
+                // TODO Auto-generated catch block
+                w *= 0.8;
+                h *= 0.8;
+                e.printStackTrace();
+            } catch (Throwable ex) {
+                printErrorStackInfo(ex);
+            }
 
-	public static int readPictureDegree(String path) {
-		int degree = 0;
-		try {
-			ExifInterface exifInterface = new ExifInterface(path);
-			int orientation = exifInterface.getAttributeInt(
-					ExifInterface.TAG_ORIENTATION,
-					ExifInterface.ORIENTATION_NORMAL);
-			switch (orientation) {
-			case ExifInterface.ORIENTATION_ROTATE_90:
-				degree = 90;
-				break;
-			case ExifInterface.ORIENTATION_ROTATE_180:
-				degree = 180;
-				break;
-			case ExifInterface.ORIENTATION_ROTATE_270:
-				degree = 270;
-				break;
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return degree;
-	}
+        }
+        return resizedBitmap;
+    }
+
+    public static int readPictureDegree(String path) {
+        int degree = 0;
+        try {
+            ExifInterface exifInterface = new ExifInterface(path);
+            int orientation = exifInterface.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL);
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    degree = 90;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    degree = 180;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    degree = 270;
+                    break;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return degree;
+    }
 
 
 }
