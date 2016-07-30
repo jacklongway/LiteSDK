@@ -31,8 +31,10 @@ public class PhotoManager implements Application.ActivityLifecycleCallbacks {
     private File mOutPath;
     private File mCropTempPath;
     private AlertDialog mAlertDialog;
+    private Activity mActivity;
 
     private AndroidApplication getFrameworkApplication(Activity activity) {
+        this.mActivity = activity;
         Application application = (Application) activity.getApplicationContext();
         if (application instanceof AndroidApplication) {
             AndroidApplication androidApplication = (AndroidApplication) application;
@@ -150,7 +152,7 @@ public class PhotoManager implements Application.ActivityLifecycleCallbacks {
             }
             return;
         }
-        if (activity.isFinishing()){
+        if (activity.isFinishing()) {
             return;
         }
         try {
@@ -209,7 +211,7 @@ public class PhotoManager implements Application.ActivityLifecycleCallbacks {
             }
             return;
         }
-        if(activity.isFinishing()){
+        if (activity.isFinishing()) {
             return;
         }
         try {
@@ -257,16 +259,19 @@ public class PhotoManager implements Application.ActivityLifecycleCallbacks {
 
     @Override
     public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
-        outState.putSerializable(EXTRA_CAMERA_OUT_PATH, mOutPath);
-        outState.putSerializable(EXTRA_CROP_TEMP_PATH, mCropTempPath);
+        if (activity == mActivity) {
+            outState.putSerializable(EXTRA_CAMERA_OUT_PATH, mOutPath);
+            outState.putSerializable(EXTRA_CROP_TEMP_PATH, mCropTempPath);
+        }
     }
 
     @Override
     public void onActivityDestroyed(Activity activity) {
-        AndroidApplication androidApplication = getFrameworkApplication(activity);
-        if (androidApplication != null) {
-            androidApplication.removeActivityLifecycleCallback(PhotoManager.this);
+        if (activity == mActivity) {
+            AndroidApplication androidApplication = getFrameworkApplication(activity);
+            if (androidApplication != null) {
+                androidApplication.removeActivityLifecycleCallback(PhotoManager.this);
+            }
         }
-
     }
 }
