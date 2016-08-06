@@ -40,6 +40,12 @@ public class LoadingFragment extends BaseFragment {
         return loading(containerId, null, baseActivity);
     }
 
+    public static void hideLoading(Fragment fragment,BaseActivity activity){
+        if(!Utils.contextIsValidate(activity)){
+            return;
+        }
+        activity.removeLoading(fragment);
+    }
     public static Fragment loading(int containerId, ILoading loading, BaseActivity baseActivity) {
         if (!Utils.contextIsValidate(baseActivity)) {
             return null;
