@@ -107,6 +107,15 @@ public abstract class BaseFragment extends Fragment implements AndroidApplicatio
         }
 
         initView(view);
+        registerEvent(view);
+        bindView(view);
+    }
+
+    protected void registerEvent(View view) {
+    }
+
+
+    protected void bindView(View view) {
     }
 
     protected void initView(View view) {

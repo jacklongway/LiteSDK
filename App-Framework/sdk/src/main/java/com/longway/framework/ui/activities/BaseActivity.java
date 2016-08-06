@@ -23,7 +23,9 @@ import com.longway.framework.core.network.base.netstate.NetworkStateReceiver;
 import com.longway.framework.handler.H;
 import com.longway.framework.handler.HandlerCallback;
 import com.longway.framework.ui.fragments.BaseFragment;
+import com.longway.framework.ui.fragments.ILoading;
 import com.longway.framework.ui.fragments.LoadingDialogFragment;
+import com.longway.framework.ui.fragments.LoadingFragment;
 import com.longway.framework.ui.fragments.fragmentStack.FragmentBuildParams;
 import com.longway.framework.util.KeyBoardUtils;
 import com.longway.framework.util.NetWorkUtil;
@@ -101,9 +103,33 @@ public abstract class BaseActivity extends AppCompatActivity implements HandlerC
     }
 
     public Fragment replaceFragment(int containerViewId, Class<? extends BaseFragment> clz, Bundle args) {
-        BaseFragment instance = (BaseFragment) Fragment.instantiate(this, clz.getName(), args);
+        Fragment instance = Fragment.instantiate(this, clz.getName(), args);
         getSupportFragmentManager().beginTransaction().replace(containerViewId, instance, clz.getSimpleName()).commit();
         return instance;
+    }
+
+    public void removeFragment(Fragment fragment) {
+        getSupportFragmentManager().beginTransaction().remove(fragment).commitAllowingStateLoss();
+    }
+
+    public Fragment addFragment(int containerId, Class<? extends BaseFragment> clz, Bundle params) {
+        Fragment fragment = Fragment.instantiate(this, clz.getName(), params);
+        getSupportFragmentManager().beginTransaction().add(containerId, fragment, fragment.toString()).commit();
+        return fragment;
+    }
+
+    public Fragment showLoading(int containerId) {
+       return showLoading(containerId,null);
+    }
+
+    public Fragment showLoading(int containerId, ILoading loading) {
+        LoadingFragment fragment = (LoadingFragment) addFragment(containerId, LoadingFragment.class, null);
+        fragment.setILoading(loading);
+        return fragment;
+    }
+
+    public void removeLoading(Fragment fragment){
+         removeFragment(fragment);
     }
 
     /**

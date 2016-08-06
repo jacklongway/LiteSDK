@@ -32,6 +32,10 @@ public class PhotoManager implements Application.ActivityLifecycleCallbacks {
     private AlertDialog mAlertDialog;
     private Activity mActivity;
 
+    public static PhotoManager get(Activity activity,PhotoListener photoListener){
+        return new PhotoManager(activity,photoListener);
+    }
+
 
     public PhotoManager(final Activity a, PhotoListener photoListener) {
         this.mActivity = a;

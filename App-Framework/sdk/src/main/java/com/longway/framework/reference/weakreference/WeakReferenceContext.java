@@ -1,7 +1,9 @@
 package com.longway.framework.reference.weakreference;
 
-import android.app.Activity;
 import android.content.Context;
+
+import com.longway.framework.util.Utils;
+
 
 /**
  * Context可用性检测器
@@ -16,13 +18,6 @@ public class WeakReferenceContext extends BaseWeakReference<Context> {
 
     @Override
     public boolean referenceActive() {
-        Context context = getReference();
-        if (context == null) {
-            return false;
-        }
-        if (context instanceof Activity) {
-            return !((Activity) context).isFinishing();
-        }
-        return true;
+        return Utils.contextIsValidate(getReference());
     }
 }

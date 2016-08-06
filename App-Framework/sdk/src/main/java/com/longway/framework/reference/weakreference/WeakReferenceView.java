@@ -2,6 +2,8 @@ package com.longway.framework.reference.weakreference;
 
 import android.view.View;
 
+import com.longway.framework.util.Utils;
+
 /**
  * View可用性检测器
  *
@@ -14,10 +16,6 @@ public class WeakReferenceView extends BaseWeakReference<View> {
 
     @Override
     public boolean referenceActive() {
-        View view = getReference();
-        if (view == null) {
-            return false;
-        }
-        return true;
+        return Utils.viewIsValidate(getReference());
     }
 }

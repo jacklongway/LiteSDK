@@ -10,5 +10,7 @@
 
     <string name="log_service">log_service</string>
 
+    <string name="loading">正在加载数据</string>
+
 
 </resources>

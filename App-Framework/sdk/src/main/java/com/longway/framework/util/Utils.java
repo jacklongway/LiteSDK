@@ -1,9 +1,11 @@
 package com.longway.framework.util;
 
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Looper;
+import android.support.v4.app.Fragment;
 import android.view.View;
 
 import java.util.concurrent.Future;
@@ -34,6 +36,26 @@ public class Utils {
         return Looper.getMainLooper() == Looper.myLooper();
     }
 
+    public static boolean contextIsValidate(Context context) {
+        if (context == null) {
+            return false;
+        }
+        if (context instanceof Activity) {
+            Activity activity = (Activity) context;
+            if (activity.isFinishing()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean fragmentIsValidate(Fragment fragment){
+        if (fragment == null || fragment.isDetached() || fragment.isRemoving()) {
+            return false;
+        }
+        return true;
+    }
+
     public static Context convertContext(Context context) {
         if (context == null) {
             throw new NullPointerException("context must be not null");
@@ -43,6 +65,7 @@ public class Utils {
         }
         return context;
     }
+
     public static boolean viewIsValidate(View view) {
         if (view == null) {
             return false;

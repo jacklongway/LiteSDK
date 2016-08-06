@@ -9,7 +9,6 @@ import com.longway.elabels.R;
 import java.util.ArrayList;
 
 /**
- * Created by longway on 16/6/20.
  * Email:longway1991117@sina.com
  * 加载带有缓存的view
  */
@@ -32,19 +31,27 @@ public abstract class ViewPagerAdapter extends PagerAdapter {
 
     protected abstract int getViewType(int position);
 
-    @Override
-    public Object instantiateItem(ViewGroup container, int position) {
-        int size = mCacheView.size();
-        if (size > 0) {
-            View view = mCacheView.remove(0);
-            int type = (Integer) view.getTag(R.id.view_key);
-            if (type == getViewType(position)) {
-                bindData(view, position);
-                return view;
+    private View getViewByViewType(int position) {
+        View view = null;
+        if (mCacheView.isEmpty()) {
+            return view;
+        }
+        for (View v : mCacheView) {
+            if (v != null && v.getTag(R.id.view_key) == getViewType(position)) {
+                view = v;
             }
         }
-        View view = createView(position);
-        view.setTag(R.id.view_key, getViewType(position));
+        mCacheView.remove(view);
+        return view;
+    }
+
+    @Override
+    public Object instantiateItem(ViewGroup container, int position) {
+        View view = getViewByViewType(position);
+        if (view == null) {
+            view = createView(position);
+            view.setTag(R.id.view_key, getViewType(position));
+        }
         bindData(view, position);
         return view;
     }
