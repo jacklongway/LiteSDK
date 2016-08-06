@@ -42,6 +42,18 @@ public class AppUtils {
         return null;
     }
 
+    public static int getAppIconResId(Context context) {
+        try {
+            PackageManager packageManager = context.getPackageManager();
+            PackageInfo packageInfo = packageManager.getPackageInfo(
+                    context.getPackageName(), 0);
+            return packageInfo.applicationInfo.icon;
+        } catch (NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     /**
      * [获取应用程序版本名称信息]
      *

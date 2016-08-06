@@ -1,6 +1,7 @@
 package com.longway.framework.util;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -22,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 
 import static com.longway.framework.util.FileUtils.getFileExtension;
+import static com.longway.framework.util.FileUtils.getMimetype;
 import static com.longway.framework.util.FileUtils.sendBroadcastToFileScanner;
 
 public class IntentUtils {
@@ -270,5 +272,39 @@ public class IntentUtils {
             intent.setAction("android.intent.action.VIEW");
         }
         activity.startActivity(intent);
+    }
+
+    /**
+     * 打开文件
+     *
+     * @param context
+     * @param path
+     */
+    public static void openFile(Context context, String path) {
+        try {
+            Intent intent = new Intent();
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            // 设置intent的Action属性
+            intent.setAction(Intent.ACTION_VIEW);
+            // 获取文件file的MIME类型
+            // 设置intent的data和Type属性。
+            File file = new File(path);
+            intent.setDataAndType(/* uri */Uri.fromFile(file), getMimetype(path));
+            // 跳转
+            context.startActivity(intent);
+            // Intent.createChooser(intent, "请选择对应的软件打开该附件！");
+
+        } catch (ActivityNotFoundException e) {
+        }
+    }
+
+
+    public static void installApk(Context mContext, File file) {
+        Uri fileUri = Uri.fromFile(file);
+        Intent it = new Intent();
+        it.setAction(Intent.ACTION_VIEW);
+        it.setDataAndType(fileUri, "application/vnd.android.package-archive");
+        it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);// 防止打不开应用
+        mContext.startActivity(it);
     }
 }

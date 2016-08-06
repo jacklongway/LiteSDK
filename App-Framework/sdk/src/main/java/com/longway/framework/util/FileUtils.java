@@ -1,6 +1,5 @@
 package com.longway.framework.util;
 
-import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -8,7 +7,6 @@ import android.os.Environment;
 import android.os.StatFs;
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
-import android.widget.Toast;
 
 import com.facebook.stetho.common.LogUtil;
 import com.longway.framework.AndroidApplication;
@@ -159,7 +157,7 @@ public class FileUtils {
         if (context == null || !sdcardAvailable()) {
             return file;
         }
-        String dirs = "";
+        String dirs;
         if (TextUtils.isEmpty(dir)) {
             dirs = context.getPackageName();
         } else {
@@ -396,32 +394,6 @@ public class FileUtils {
         return false;
     }
 
-    /**
-     * 打开文件
-     *
-     * @param context
-     * @param path
-     */
-    public static void openFile(Context context, String path) {
-        try {
-            Intent intent = new Intent();
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            // 设置intent的Action属性
-            intent.setAction(Intent.ACTION_VIEW);
-            // 获取文件file的MIME类型
-
-            // 设置intent的data和Type属性。
-            File file = new File(path);
-            intent.setDataAndType(/* uri */Uri.fromFile(file), getMimetype(path));
-            // 跳转
-            context.startActivity(intent);
-            // Intent.createChooser(intent, "请选择对应的软件打开该附件！");
-
-        } catch (ActivityNotFoundException e) {
-            // TODO: handle exception
-            Toast.makeText(context, "无法打开此文件", Toast.LENGTH_LONG).show();
-        }
-    }
 
     /**
      * 获取文件名

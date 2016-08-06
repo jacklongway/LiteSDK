@@ -13,9 +13,14 @@
         <meta-data
             android:name="com.longway.framework.core.imageLoader.GlideConfiguration"
             android:value="GlideModule"></meta-data>
+
         <service
             android:name="com.longway.framework.core.log.LogService"
             android:description="@string/log_service"></service>
+        <service
+            android:name="com.longway.framework.version.DownloadService"
+            android:enabled="true"
+            android:exported="false"></service>
     </application>
 
 </manifest>
