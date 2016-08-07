@@ -49,7 +49,7 @@ import com.longway.framework.util.DensityUtils;
  * {@link View}. This class is intended to be instantiated at
  * runtime rather than included in XML layouts. 需要用户调用{@link #checked()}
  * 函数来消除未读消息的红点
- * 
+ *
  * @author Jeff Gilfelt
  */
 public class BadgeView extends TextView {
@@ -99,7 +99,7 @@ public class BadgeView extends TextView {
      * {@link View}.
      *
      * @param context context for this view.
-     * @param target the View to attach the badge to.
+     * @param target  the View to attach the badge to.
      */
     public BadgeView(Context context, View target) {
         this(context, null, android.R.attr.textViewStyle, target, 0);
@@ -110,8 +110,8 @@ public class BadgeView extends TextView {
      * {@link TabWidget} tab at a given index.
      *
      * @param context context for this view.
-     * @param target the TabWidget to attach the badge to.
-     * @param index the position of the tab within the target.
+     * @param target  the TabWidget to attach the badge to.
+     * @param index   the position of the tab within the target.
      */
     public BadgeView(Context context, TabWidget target, int index) {
         this(context, null, android.R.attr.textViewStyle, target, index);
@@ -158,7 +158,6 @@ public class BadgeView extends TextView {
         } else {
             show();
         }
-
     }
 
     private void applyTo(View target) {
@@ -254,7 +253,7 @@ public class BadgeView extends TextView {
 
     /**
      * Toggle the badge visibility in the UI.
-     * 
+     *
      * @param animate flag to apply the default fade-in/out animation.
      */
     public void toggle(boolean animate) {
@@ -264,7 +263,7 @@ public class BadgeView extends TextView {
     /**
      * Toggle the badge visibility in the UI.
      *
-     * @param animIn Animation to apply to the view when made visible.
+     * @param animIn  Animation to apply to the view when made visible.
      * @param animOut Animation to apply to the view when made non-visible.
      */
     public void toggle(Animation animIn, Animation animOut) {
@@ -300,7 +299,7 @@ public class BadgeView extends TextView {
     /**
      * Increment the numeric badge label. If the current badge label cannot be
      * converted to an integer value, its label will be set to "0".
-     * 
+     *
      * @param offset the increment offset.
      */
     public int increment(int offset) {
@@ -323,7 +322,7 @@ public class BadgeView extends TextView {
     /**
      * Decrement the numeric badge label. If the current badge label cannot be
      * converted to an integer value, its label will be set to "0".
-     * 
+     *
      * @param offset the decrement offset.
      */
     public int decrement(int offset) {
@@ -398,9 +397,9 @@ public class BadgeView extends TextView {
 
     /**
      * Set the positioning of this badge.
-     * 
+     *
      * @param layoutPosition one of POSITION_TOP_LEFT, POSITION_TOP_RIGHT,
-     *            POSITION_BOTTOM_LEFT, POSITION_BOTTOM_RIGHT, POSTION_CENTER.
+     *                       POSITION_BOTTOM_LEFT, POSITION_BOTTOM_RIGHT, POSTION_CENTER.
      */
     public void setBadgePosition(int layoutPosition) {
         this.badgePosition = layoutPosition;
@@ -425,7 +424,7 @@ public class BadgeView extends TextView {
     /**
      * Set the horizontal/vertical margin from the target View that is applied
      * to this badge.
-     * 
+     *
      * @param badgeMargin the margin in pixels.
      */
     public void setBadgeMargin(int badgeMargin) {
@@ -436,9 +435,9 @@ public class BadgeView extends TextView {
     /**
      * Set the horizontal/vertical margin from the target View that is applied
      * to this badge.
-     * 
+     *
      * @param horizontal margin in pixels.
-     * @param vertical margin in pixels.
+     * @param vertical   margin in pixels.
      */
     public void setBadgeMargin(int horizontal, int vertical) {
         this.badgeMarginH = horizontal;
@@ -454,7 +453,7 @@ public class BadgeView extends TextView {
 
     /**
      * Set the color value of the badge background.
-     * 
+     *
      * @param badgeColor the badge background color.
      */
     public void setBadgeBackgroundColor(int badgeColor) {
